@@ -1,0 +1,24 @@
+{
+  "name": "-backend-coursework_cst3144",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Alexander-Lao-III/-backend-Coursework_CST3144.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Alexander-Lao-III/-backend-Coursework_CST3144/issues"
+  },
+  "homepage": "https://github.com/Alexander-Lao-III/-backend-Coursework_CST3144#readme",
+  "dependencies": {
+    "express": "^5.1.0",
+    "mongodb": "^7.0.0"
+  }
+}
