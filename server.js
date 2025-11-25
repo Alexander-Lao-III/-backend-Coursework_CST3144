@@ -5,6 +5,12 @@ const path = require('path');
 const app = express();
 app.use(express.json());
 
+app.use((req, res, next) => {
+  console.log(req.method, req.url, new Date().toISOString());
+  next();
+});
+
+
 app.use("/images", express.static("images"));
 
 let db;
