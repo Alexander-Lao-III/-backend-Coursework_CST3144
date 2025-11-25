@@ -1,8 +1,11 @@
 const express = require('express');
 const { MongoClient } = require('mongodb');
+const path = require('path');
 
 const app = express();
 app.use(express.json());
+
+app.use("/images", express.static("images"));
 
 let db;
 
