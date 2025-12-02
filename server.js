@@ -1,6 +1,6 @@
-const express = require('express');
-const { MongoClient, ObjectId } = require('mongodb');
-const path = require('path');
+const express = require("express");
+const { MongoClient, ObjectId } = require("mongodb");
+const path = require("path");
 
 const app = express();
 app.use(express.json());
@@ -23,9 +23,11 @@ MongoClient.connect(
   })
   .catch(err => console.error(err));
 
+
 app.get("/", (req, res) => {
   res.send("Backend running");
 });
+
 
 app.get("/lessons", (req, res) => {
   db.collection("lessons")
@@ -35,26 +37,30 @@ app.get("/lessons", (req, res) => {
     .catch(err => res.status(500).json({ error: err }));
 });
 
+
 app.get("/search", (req, res) => {
   const q = req.query.q || "";
   const regex = new RegExp(q, "i");
 
-  const numberQ = Number(q);
-  const isNumber = !isNaN(numberQ);
+  const num = Number(q);
+  const isNum = !isNaN(num);
+
+  const filter = {
+    $or: [
+      { topic: regex },
+      { location: regex },
+      isNum ? { price: num } : {},
+      isNum ? { space: num } : {}
+    ]
+  };
 
   db.collection("lessons")
-    .find({
-      $or: [
-        { topic: regex },
-        { location: regex },
-        isNumber ? { price: numberQ } : {},
-        isNumber ? { space: numberQ } : {}
-      ]
-    })
+    .find(filter)
     .toArray()
     .then(results => res.json(results))
     .catch(err => res.status(500).json({ error: err }));
 });
+
 
 app.post("/order", async (req, res) => {
   const { name, phone, lessons } = req.body;
@@ -79,18 +85,24 @@ app.post("/order", async (req, res) => {
   }
 });
 
-app.put("/lesson/:id", (req, res) => {
-  const id = req.params.id;
-  const newSpace = req.body.space;
 
-  db.collection("lessons")
-    .updateOne(
+app.put("/lesson/:id", async (req, res) => {
+  try {
+    const id = req.params.id.trim();
+    const newSpace = req.body.space;
+
+    const result = await db.collection("lessons").updateOne(
       { _id: new ObjectId(id) },
       { $set: { space: newSpace } }
-    )
-    .then(() => res.json({ status: "space updated" }))
-    .catch(err => res.status(500).json({ error: err }));
+    );
+
+    res.json({ status: "space updated", result });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Invalid ID or database error" });
+  }
 });
+
 
 app.listen(3000, () => {
   console.log("Server running on port 3000");
