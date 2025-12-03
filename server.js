@@ -1,90 +1,100 @@
 const express = require('express');
-const cors = require('cors');
 const { MongoClient, ObjectId } = require('mongodb');
+const path = require('path');
 
 const app = express();
-app.use(cors());
 app.use(express.json());
 
+app.use("/images", express.static("images"));
+
 app.use((req, res, next) => {
-  console.log(req.method, req.originalUrl, new Date().toISOString());
+  console.log(req.method, req.url, new Date().toISOString());
   next();
 });
 
-const uri = "mongodb+srv://cluster0.dhionr6.mongodb.net"; // keep your actual connection string
-const client = new MongoClient(uri);
-let lessonsCollection, ordersCollection;
+const url = "mongodb+srv://alexander:AlexLaoAlex824@cluster0.dhionr6.mongodb.net/";
+const client = new MongoClient(url);
 
-async function connectDB() {
+async function start() {
   await client.connect();
-  const db = client.db("webstore");
-  lessonsCollection = db.collection("lessons");
-  ordersCollection = db.collection("orders");
   console.log("MongoDB connected");
+
+  const db = client.db("webstore");
+
+  app.get("/lessons", async (req, res) => {
+    try {
+      const lessons = await db.collection("lessons").find({}).toArray();
+      res.json(lessons);
+    } catch (error) {
+      res.status(500).json({ error: "Database error" });
+    }
+  });
+
+  app.get("/search", async (req, res) => {
+    const q = req.query.q || "";
+    const regex = new RegExp(q, "i");
+
+    const numberQ = Number(q);
+    const isNumber = !isNaN(numberQ);
+
+    try {
+      const results = await db.collection("lessons").find({
+        $or: [
+          { topic: regex },
+          { location: regex },
+          isNumber ? { price: numberQ } : {},
+          isNumber ? { space: numberQ } : {}
+        ]
+      }).toArray();
+
+      res.json(results);
+    } catch (error) {
+      res.status(500).json({ error: "Database error" });
+    }
+  });
+
+  app.post("/order", async (req, res) => {
+    const { name, phone, lessons } = req.body;
+
+    if (!name || !/^[A-Za-z ]+$/.test(name)) {
+      return res.status(400).json({ error: "Name must contain letters only" });
+    }
+
+    if (!phone || !/^[0-9]+$/.test(phone)) {
+      return res.status(400).json({ error: "Phone must contain numbers only" });
+    }
+
+    if (!Array.isArray(lessons) || lessons.length === 0) {
+      return res.status(400).json({ error: "Order must include at least one lesson" });
+    }
+
+    try {
+      await db.collection("orders").insertOne({ name, phone, lessons });
+      res.json({ status: "order saved" });
+    } catch (error) {
+      res.status(500).json({ error: "Database error" });
+    }
+  });
+
+  app.put("/lesson/:id", async (req, res) => {
+    const id = req.params.id;
+    const { space } = req.body;
+
+    try {
+      const result = await db.collection("lessons").updateOne(
+        { _id: new ObjectId(id) },
+        { $set: { space } }
+      );
+
+      res.json({ status: "space updated", result });
+    } catch (error) {
+      res.status(500).json({ error: "Database error" });
+    }
+  });
+
+  app.listen(3000, () => {
+    console.log("Server running on port 3000");
+  });
 }
-connectDB();
 
-app.get('/lessons', async (req, res) => {
-  const lessons = await lessonsCollection.find().toArray();
-  res.json(lessons);
-});
-
-app.put('/lesson/:id', async (req, res) => {
-  const id = req.params.id;
-  const { space } = req.body;
-
-  try {
-    const result = await lessonsCollection.updateOne(
-      { _id: new ObjectId(id) },
-      { $set: { space: space } }
-    );
-
-    res.json({ status: "space updated", result });
-  } catch (err) {
-    res.status(500).json({ error: err.toString() });
-  }
-});
-
-app.get('/search', async (req, res) => {
-  const q = req.query.q;
-  try {
-    const results = await lessonsCollection.find({
-      $or: [
-        { topic: { $regex: q, $options: "i" } },
-        { location: { $regex: q, $options: "i" } }
-      ]
-    }).toArray();
-
-    res.json(results);
-  } catch (err) {
-    res.status(500).json({ error: err.toString() });
-  }
-});
-
-app.post('/order', async (req, res) => {
-  const { name, phone, lessons } = req.body;
-
-  if (!name || !phone || !lessons || lessons.length === 0) {
-    return res.status(400).json({ error: "Missing fields" });
-  }
-
-  try {
-    const order = {
-      name,
-      phone,
-      lessons,
-      createdAt: new Date()
-    };
-
-    const result = await ordersCollection.insertOne(order);
-
-    res.json({ status: "order saved", id: result.insertedId });
-  } catch (err) {
-    res.status(500).json({ error: err.toString() });
-  }
-});
-
-const PORT = 3000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+start();
