@@ -2,8 +2,9 @@
   "name": "-backend-coursework_cst3144",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
+    "start": "node server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -19,6 +20,7 @@
   "homepage": "https://github.com/Alexander-Lao-III/-backend-Coursework_CST3144#readme",
   "dependencies": {
     "express": "^5.1.0",
+    "cors": "^2.8.5",
     "mongodb": "^7.0.0"
   }
 }
